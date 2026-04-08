@@ -12,10 +12,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ─── Configuration ─────────────────────────────────────────────────────────────
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or "dummy-key"
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-ENV_BASE_URL = os.getenv("ENV_BASE_URL") or os.getenv("SPACE_URL") or "https://akshayasb-email-triage-openenv.hf.space"
+API_KEY = os.environ.get("API_KEY") or os.environ.get("HF_TOKEN") or os.environ.get("OPENAI_API_KEY") or "dummy-key"
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+ENV_BASE_URL = os.environ.get("ENV_BASE_URL") or "https://akshayasb-email-triage-openenv.hf.space"
 MAX_STEPS = 20
 TEMPERATURE = 0.0
 SUCCESS_SCORE_THRESHOLD = 0.5
