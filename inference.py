@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ─── Configuration ─────────────────────────────────────────────────────────────
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY")
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or "dummy-key"
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "llama3-8b-8192")
 ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:7860")
