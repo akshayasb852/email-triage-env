@@ -48,8 +48,13 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
 
 # ─── OpenAI Client ─────────────────────────────────────────────────────────────
 def get_client() -> OpenAI:
-    return OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-
+    api_key = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or "dummy-key"
+    base_url = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+    try:
+        return OpenAI(base_url=base_url, api_key=api_key)
+    except Exception as e:
+        print(f"[DEBUG] Client error: {e}", flush=True)
+        return OpenAI(base_url=base_url, api_key="dummy-key")
 
 # ─── Agent Decision ────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are an expert email triage assistant.
