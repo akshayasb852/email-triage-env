@@ -1,0 +1,83 @@
+name: email-triage-env
+version: "1.0.0"
+description: >
+  A real-world email triage environment where an AI agent learns to classify
+  emails into urgent, normal, or spam categories with priority assignment.
+  Models a task that professionals perform daily in workplace settings.
+
+tags:
+  - openenv
+  - email
+  - triage
+  - classification
+  - nlp
+  - real-world
+
+author: akshayasb
+license: MIT
+
+environment:
+  type: text
+  interface: rest-api
+  base_url: http://localhost:7860
+
+observation_space:
+  type: object
+  fields:
+    email_id: string
+    subject: string
+    sender: string
+    body: string
+    timestamp: string
+    task_name: string
+    step: integer
+    max_steps: integer
+    score: float
+
+action_space:
+  type: object
+  fields:
+    label:
+      type: string
+      values: [urgent, normal, spam]
+    priority:
+      type: integer
+      min: 1
+      max: 5
+    summary:
+      type: string
+      description: One-line summary of the email
+
+reward:
+  type: float
+  min: 0.0
+  max: 1.0
+  description: >
+    Partial reward based on label correctness (0.5),
+    priority accuracy (0.3), and summary quality (0.2)
+
+tasks:
+  - name: easy
+    description: Classify emails as urgent or spam only
+    difficulty: easy
+    max_steps: 6
+    success_threshold: 0.5
+
+  - name: medium
+    description: Classify emails as urgent, normal, or spam
+    difficulty: medium
+    max_steps: 9
+    success_threshold: 0.5
+
+  - name: hard
+    description: Classify all emails with correct priority levels
+    difficulty: hard
+    max_steps: 15
+    success_threshold: 0.5
+
+endpoints:
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  tasks: GET /tasks
+  score: GET /score
