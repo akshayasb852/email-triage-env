@@ -56,34 +56,28 @@ Assign priority 1-5 (1=highest).
 Respond ONLY with JSON: {"label": "urgent|normal|spam", "priority": 1-5, "summary": "brief summary"}"""
 
 def get_agent_action(observation: dict) -> dict:
-    if client is None:
-        return {"label": "normal", "priority": 3, "summary": "No client available"}
-    try:
-        user_prompt = f"Subject: {observation.get('subject','')}\nFrom: {observation.get('sender','')}\nBody: {observation.get('body','')}"
-        completion = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=TEMPERATURE,
-            max_tokens=100,
-        )
-        text = completion.choices[0].message.content.strip()
-        if "```" in text:
-            text = text.split("```")[1].replace("json", "").strip()
-        action = json.loads(text)
-        if action.get("label") not in ["urgent", "normal", "spam"]:
-            action["label"] = "normal"
-        if not isinstance(action.get("priority"), int) or not (1 <= action["priority"] <= 5):
-            action["priority"] = 3
-        if not action.get("summary"):
-            action["summary"] = "No summary"
-        return action
-    except Exception as e:
-        print(f"[DEBUG] Agent error: {e}", flush=True)
-        return {"label": "normal", "priority": 3, "summary": "Could not parse email"}
-
+    user_prompt = f"Subject: {observation.get('subject','')}\nFrom: {observation.get('sender','')}\nBody: {observation.get('body','')}\n\nClassify this email. Respond ONLY with JSON: {{\"label\": \"urgent|normal|spam\", \"priority\": 1-5, \"summary\": \"brief summary\"}}"
+    
+    completion = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=TEMPERATURE,
+        max_tokens=100,
+    )
+    text = completion.choices[0].message.content.strip()
+    if "```" in text:
+        text = text.split("```")[1].replace("json", "").strip()
+    action = json.loads(text)
+    if action.get("label") not in ["urgent", "normal", "spam"]:
+        action["label"] = "normal"
+    if not isinstance(action.get("priority"), int) or not (1 <= action["priority"] <= 5):
+        action["priority"] = 3
+    if not action.get("summary"):
+        action["summary"] = "No summary"
+    return action
 # ─── Environment API Calls ─────────────────────────────────────────────────────
 def env_reset(task_name: str) -> dict:
     try:
