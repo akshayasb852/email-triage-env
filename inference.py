@@ -2,6 +2,7 @@ import os
 import json
 import requests
 from typing import List, Optional
+from openai import OpenAI
 
 # Use EXACTLY these variable names as injected by validator
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
@@ -16,17 +17,8 @@ SUCCESS_SCORE_THRESHOLD = 0.5
 
 print(f"[DEBUG] API_BASE_URL={API_BASE_URL}", flush=True)
 print(f"[DEBUG] MODEL_NAME={MODEL_NAME}", flush=True)
-print(f"[DEBUG] API_KEY_SET={bool(API_KEY)}", flush=True)
 print(f"[DEBUG] ENV_BASE_URL={ENV_BASE_URL}", flush=True)
 
-try:
-    from openai import OpenAI
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-    print(f"[DEBUG] Client created successfully", flush=True)
-except Exception as e:
-    print(f"[DEBUG] Client error: {e}", flush=True)
-    client = None
-    
 def log_start(task, env, model):
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
@@ -40,24 +32,32 @@ SYSTEM_PROMPT = """You are an email triage assistant. Classify emails as urgent,
 Respond ONLY with valid JSON: {"label": "urgent|normal|spam", "priority": 1-5, "summary": "brief summary"}"""
 
 def get_action(obs):
-    prompt = f"Subject: {obs.get('subject','')}\nFrom: {obs.get('sender','')}\nBody: {obs.get('body','')}"
-    resp = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
-        max_tokens=150,
-        temperature=0,
-    )
-    text = resp.choices[0].message.content.strip()
-    if "```" in text:
-        text = text.split("```")[1].replace("json","").strip()
-    action = json.loads(text)
-    if action.get("label") not in ["urgent","normal","spam"]:
-        action["label"] = "normal"
-    if not isinstance(action.get("priority"), int):
-        action["priority"] = 3
-    if not action.get("summary"):
-        action["summary"] = "email summary"
-    return action
+    try:
+        c = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+        prompt = f"Subject: {obs.get('subject','')}\nFrom: {obs.get('sender','')}\nBody: {obs.get('body','')}"
+        resp = c.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=150,
+            temperature=0,
+        )
+        text = resp.choices[0].message.content.strip()
+        if "```" in text:
+            text = text.split("```")[1].replace("json","").strip()
+        action = json.loads(text)
+        if action.get("label") not in ["urgent","normal","spam"]:
+            action["label"] = "normal"
+        if not isinstance(action.get("priority"), int):
+            action["priority"] = 3
+        if not action.get("summary"):
+            action["summary"] = "email summary"
+        return action
+    except Exception as e:
+        print(f"[DEBUG] LLM error: {e}", flush=True)
+        return {"label": "normal", "priority": 3, "summary": "fallback"}
 
 def run_task(task_name):
     rewards = []
@@ -72,16 +72,11 @@ def run_task(task_name):
         obs = r.json().get("observation", {})
 
         for step in range(1, MAX_STEPS + 1):
-            try:
-                action = get_action(obs)
-            except Exception as e:
-                print(f"[DEBUG] LLM error: {e}", flush=True)
-                action = {"label": "normal", "priority": 3, "summary": "fallback"}
-
+            action = get_action(obs)
             action_str = f"label={action['label']},priority={action['priority']}"
 
             try:
-                sr = requests.post(f"{ENV_BASE_URL}/step", json={"task_name": task_name, **action}, timeout=30)
+                sr = requests.post(f"{ENV_BASE_URL}/step", json={"task_name": task_name, "label": action["label"], "priority": action["priority"], "summary": action["summary"]}, timeout=30)
                 step_result = sr.json()
             except Exception as e:
                 print(f"[DEBUG] Step error: {e}", flush=True)
@@ -122,7 +117,7 @@ def main():
     for task in TASKS:
         print(f"[DEBUG] Running {task}", flush=True)
         results.append(run_task(task))
-    
+
     print("[DEBUG] ===== RESULTS =====", flush=True)
     for r in results:
         print(f"[DEBUG] {r['task']}: score={r['score']:.3f} success={r['success']}", flush=True)
