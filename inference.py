@@ -7,14 +7,11 @@ import os
 import json
 import requests
 from typing import List, Optional
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# ─── Configuration - exactly as required by validator ──────────────────────────
+# EXACTLY as required by validator
 API_BASE_URL = os.environ["API_BASE_URL"]
-MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 API_KEY = os.environ["API_KEY"]
+MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
 ENV_BASE_URL = os.environ.get("ENV_BASE_URL", "https://akshayasb-email-triage-openenv.hf.space")
 MAX_STEPS = 20
 TEMPERATURE = 0.0
