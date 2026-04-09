@@ -17,7 +17,11 @@ print(f"[DEBUG] API_BASE_URL={API_BASE_URL}", flush=True)
 print(f"[DEBUG] MODEL_NAME={MODEL_NAME}", flush=True)
 print(f"[DEBUG] ENV_BASE_URL={ENV_BASE_URL}", flush=True)
 
-client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+try:
+    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+except Exception as e:
+    print(f"[DEBUG] Client error: {e}", flush=True)
+    client = None
 
 def log_start(task, env, model):
     print(f"[START] task={task} env={env} model={model}", flush=True)
