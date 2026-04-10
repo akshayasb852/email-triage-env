@@ -11,26 +11,24 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Global environment instances for each task
 envs = {
     "easy": EmailTriageEnv(task_name="easy"),
     "medium": EmailTriageEnv(task_name="medium"),
     "hard": EmailTriageEnv(task_name="hard"),
 }
 
-current_task = "easy"
-
+def safe_score(score: float) -> float:
+    """Ensure score is strictly between 0 and 1"""
+    return round(max(0.001, min(0.999, float(score))), 3)
 
 class ResetRequest(BaseModel):
     task_name: Optional[str] = "easy"
-
 
 class StepRequest(BaseModel):
     task_name: Optional[str] = "easy"
     label: str
     priority: int
     summary: str
-
 
 @app.get("/")
 def root():
@@ -40,7 +38,6 @@ def root():
         "tasks": ["easy", "medium", "hard"],
         "description": "AI agent learns to triage emails into urgent/normal/spam categories",
     }
-
 
 @app.post("/reset")
 def reset(request: ResetRequest = ResetRequest()):
@@ -53,7 +50,6 @@ def reset(request: ResetRequest = ResetRequest()):
         "task_name": task_name,
         "info": "Environment reset successfully",
     }
-
 
 @app.post("/step")
 def step(request: StepRequest):
@@ -68,6 +64,7 @@ def step(request: StepRequest):
     )
 
     obs, reward, done, info = envs[task_name].step(action)
+    reward = safe_score(reward)
 
     return {
         "observation": obs.dict(),
@@ -76,13 +73,11 @@ def step(request: StepRequest):
         "info": info,
     }
 
-
 @app.get("/state")
 def state(task_name: str = "easy"):
     if task_name not in envs:
         task_name = "easy"
     return envs[task_name].state()
-
 
 @app.get("/tasks")
 def list_tasks():
@@ -109,18 +104,17 @@ def list_tasks():
         ]
     }
 
-
 @app.get("/score")
 def get_score(task_name: str = "easy"):
     if task_name not in envs:
         task_name = "easy"
+    score = safe_score(envs[task_name].get_final_score())
     return {
         "task_name": task_name,
-        "score": envs[task_name].get_final_score(),
+        "score": score,
         "total_reward": envs[task_name].total_reward,
         "steps": envs[task_name].step_count,
     }
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=7860)
