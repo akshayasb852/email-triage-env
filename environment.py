@@ -293,6 +293,5 @@ class EmailTriageEnv:
         if max_possible == 0:
             return 0.5
         score = self.total_reward / max_possible
-        # Must be strictly between 0 and 1
         score = max(0.001, min(0.999, score))
         return round(score, 3)
