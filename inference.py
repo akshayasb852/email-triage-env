@@ -4,7 +4,7 @@ import requests
 from openai import OpenAI
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
-API_KEY = os.environ.get("API_KEY", os.environ.get("HF_TOKEN", "dummy"))
+API_KEY = os.environ.get("API_KEY", "dummy-key")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
 ENV_BASE_URL = os.environ.get("ENV_BASE_URL", "https://akshayasb-email-triage-openenv.hf.space")
 
@@ -16,12 +16,6 @@ SUCCESS_SCORE_THRESHOLD = 0.5
 print(f"[DEBUG] API_BASE_URL={API_BASE_URL}", flush=True)
 print(f"[DEBUG] MODEL_NAME={MODEL_NAME}", flush=True)
 print(f"[DEBUG] ENV_BASE_URL={ENV_BASE_URL}", flush=True)
-
-try:
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-except Exception as e:
-    print(f"[DEBUG] Client error: {e}", flush=True)
-    client = None
 
 def log_start(task, env, model):
     print(f"[START] task={task} env={env} model={model}", flush=True)
@@ -36,6 +30,7 @@ SYSTEM_PROMPT = """You are an email triage assistant. Classify emails as urgent,
 Respond ONLY with valid JSON: {"label": "urgent|normal|spam", "priority": 1-5, "summary": "brief summary"}"""
 
 def get_action(obs):
+    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     prompt = f"Subject: {obs.get('subject','')}\nFrom: {obs.get('sender','')}\nBody: {obs.get('body','')}"
     resp = client.chat.completions.create(
         model=MODEL_NAME,
